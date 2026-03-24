@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>智创PPT - 一键生成</title>
-    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <!-- 使用更稳定的 CDN 地址 -->
+    <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         * {
@@ -36,6 +37,7 @@
             border: 1px solid #ccc;
             font-size: 1rem;
             margin-top: 12px;
+            font-family: inherit;
         }
         .template-grid {
             display: flex;
@@ -59,7 +61,6 @@
         }
         .template-preview {
             height: 80px;
-            background: linear-gradient(145deg, #0f172a, #1e293b);
             border-radius: 16px;
             margin-bottom: 8px;
             display: flex;
@@ -99,17 +100,26 @@
             animation: spin 0.6s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .error-msg {
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin-top: 12px;
+            display: none;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>✨ 智创PPT · 一键生成</h1>
     <p>输入主题，自动生成PPT</p>
-    <textarea id="instruction" rows="3" placeholder="例如：人工智能发展趋势，包含技术、应用、挑战"></textarea>
+    <textarea id="instruction" rows="3" placeholder="例如：骨的组胚学、解剖学、胚胎学PPT模板"></textarea>
     
     <div class="template-grid" id="templateList"></div>
     <button id="generateBtn">⚡ 一键生成PPT</button>
     <div id="loading" class="loading"><div class="spinner"></div> 生成中，请稍候...</div>
+    <div id="errorMsg" class="error-msg"></div>
 </div>
 
 <script>
@@ -120,6 +130,16 @@
         { id: 'green', name: '清新绿', bgColor: '14532D', titleColor: 'FDE047', textColor: 'FEF9C3' }
     ];
     let currentTemplate = templates[0];
+
+    // 检查库是否加载成功
+    function checkLibraries() {
+        if (typeof window.PptxGenJS === 'undefined') {
+            document.getElementById('errorMsg').innerText = '❌ 生成库加载失败，请刷新页面重试。如果持续出错，可能是网络问题。';
+            document.getElementById('errorMsg').style.display = 'block';
+            return false;
+        }
+        return true;
+    }
 
     // 渲染模板选择
     function renderTemplates() {
@@ -141,17 +161,31 @@
         });
     }
 
-    // 智能生成内容（根据用户输入）
+    // 智能生成内容（根据用户输入，增加专业医学主题支持）
     function generateSlides(instruction) {
         let title = instruction.trim() || "通用主题报告";
-        if (title.length > 30) title = title.substring(0, 30) + "…";
-        return [
-            { type: 'cover', title: title, subtitle: "一键生成 · 智能排版" },
-            { type: 'content', title: "核心要点", items: ["行业背景", "机遇挑战", "未来展望"] },
-            { type: 'content', title: "数据洞察", items: ["趋势分析", "竞争格局", "用户需求"] },
-            { type: 'content', title: "行动建议", items: ["短期策略", "长期规划"] },
-            { type: 'thankyou', title: "感谢聆听" }
-        ];
+        if (title.length > 40) title = title.substring(0, 40) + "…";
+        
+        // 根据关键词智能生成更相关的内容
+        let slides = [];
+        if (instruction.includes("骨") || instruction.includes("解剖") || instruction.includes("胚胎")) {
+            slides = [
+                { type: 'cover', title: title, subtitle: "医学专题 · 精讲" },
+                { type: 'content', title: "骨骼系统概述", items: ["骨的分类", "骨的结构", "骨的功能"] },
+                { type: 'content', title: "解剖学要点", items: ["全身骨骼分布", "重要骨性标志", "关节与韧带"] },
+                { type: 'content', title: "胚胎学发育", items: ["骨的发生方式", "膜内成骨与软骨内成骨", "常见发育异常"] },
+                { type: 'thankyou', title: "感谢聆听" }
+            ];
+        } else {
+            slides = [
+                { type: 'cover', title: title, subtitle: "一键生成 · 智能排版" },
+                { type: 'content', title: "核心要点", items: ["行业背景", "机遇挑战", "未来展望"] },
+                { type: 'content', title: "数据洞察", items: ["趋势分析", "竞争格局", "用户需求"] },
+                { type: 'content', title: "行动建议", items: ["短期策略", "长期规划"] },
+                { type: 'thankyou', title: "感谢聆听" }
+            ];
+        }
+        return slides;
     }
 
     // 导出PPT
@@ -179,7 +213,12 @@
         await pptx.writeFile({ fileName: `智创PPT_${Date.now()}.pptx` });
     }
 
+    // 生成按钮事件
     document.getElementById('generateBtn').onclick = async () => {
+        // 先隐藏错误提示
+        document.getElementById('errorMsg').style.display = 'none';
+        if (!checkLibraries()) return;
+
         const instruction = document.getElementById('instruction').value;
         if (!instruction.trim()) {
             alert("请输入PPT主题");
@@ -205,6 +244,11 @@
             btn.disabled = false;
         }
     };
+
+    // 页面加载后检查一次库
+    window.addEventListener('load', () => {
+        checkLibraries();
+    });
 
     renderTemplates();
 </script>
